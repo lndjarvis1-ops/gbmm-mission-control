@@ -1,0 +1,62 @@
+{
+  "tasks": [
+    {
+      "id": "demo-1",
+      "title": "Skyvertise - Meeras Show Stage 2",
+      "project": "Skyvertise",
+      "status": "doing",
+      "priority": "p0",
+      "assignee": "Laith",
+      "deadline": "2026-02-03",
+      "effort": "large",
+      "progress": 60,
+      "nextAction": "Edit 16:9 master recap",
+      "tags": ["video", "editing"],
+      "notes": "Stage 1 carousel already posted",
+      "createdAt": "2026-02-02T16:00:00Z",
+      "updatedAt": "2026-02-02T17:00:00Z"
+    },
+    {
+      "id": "demo-2",
+      "title": "FD Properties - Batch 1 Reels",
+      "project": "FD Properties",
+      "status": "doing",
+      "priority": "p0",
+      "assignee": "Laith",
+      "deadline": "2026-02-03",
+      "effort": "large",
+      "progress": 50,
+      "nextAction": "Deliver 10/20 reels by tomorrow morning",
+      "tags": ["reels", "delivery"],
+      "notes": "5 done, 5 remaining for batch 1",
+      "createdAt": "2026-02-02T14:00:00Z",
+      "updatedAt": "2026-02-02T16:00:00Z"
+    },
+    {
+      "id": "demo-3",
+      "title": "Setup Mission Control Dashboard",
+      "project": "Internal",
+      "status": "doing",
+      "priority": "p1",
+      "assignee": "Harry",
+      "deadline": "2026-02-02",
+      "effort": "large",
+      "progress": 80,
+      "nextAction": "Deploy and test all views",
+      "tags": ["ops", "tooling"],
+      "notes": "Building task tracking system",
+      "createdAt": "2026-02-02T17:00:00Z",
+      "updatedAt": "2026-02-02T17:30:00Z"
+    }
+  ],
+  "assignees": ["Laith", "Harry"],
+  "projects": ["Skyvertise", "FD Properties", "Noon Minutes", "El Patron", "Espada", "Internal"],
+  "settings": {
+    "defaultView": "kanban",
+    "defaultCalendarView": "month",
+    "theme": "dark"
+  },
+  "meta": {
+    "lastSync": "2026-02-02T17:00:00Z"
+  }
+}

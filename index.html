@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📌 GBMM Mission Control</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <h1>📌 GBMM</h1>
+            <span class="subtitle">Mission Control</span>
+        </div>
+        <div class="header-center">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Search tasks..." />
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="header-btn" id="newTaskBtn" title="New Task (N)">
+                <span>+</span>
+            </button>
+            <button class="header-btn" id="settingsBtn" title="Settings">
+                <span>⚙️</span>
+            </button>
+            <button class="header-btn" id="themeToggle" title="Toggle Theme">
+                <span class="theme-icon">☀️</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-value" id="statActive">0</div>
+            <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statOverdue">0</div>
+            <div class="stat-label">Overdue</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statDoneToday">0</div>
+            <div class="stat-label">Done Today</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statProgress">0%</div>
+            <div class="stat-label">Progress</div>
+        </div>
+    </div>
+
+    <!-- Filters & View Toggle -->
+    <div class="controls">
+        <div class="filters">
+            <div class="filter-group">
+                <label>Assignee:</label>
+                <select id="filterAssignee" multiple>
+                    <option value="all" selected>All</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Project:</label>
+                <select id="filterProject" multiple>
+                    <option value="all" selected>All</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Priority:</label>
+                <select id="filterPriority" multiple>
+                    <option value="all" selected>All</option>
+                    <option value="p0">🔴 P0</option>
+                    <option value="p1">🟠 P1</option>
+                    <option value="p2">🟡 P2</option>
+                    <option value="p3">⚪ P3</option>
+                </select>
+            </div>
+        </div>
+        <div class="view-toggle">
+            <button class="view-btn active" data-view="kanban">⊞ Kanban</button>
+            <button class="view-btn" data-view="list">☰ List</button>
+            <button class="view-btn" data-view="calendar">📅 Calendar</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Kanban View -->
+        <div class="view-container kanban-view" id="kanbanView">
+            <div class="kanban-columns">
+                <div class="kanban-column" data-status="backlog">
+                    <div class="column-header">
+                        <h3>📥 Backlog</h3>
+                        <span class="column-count">0</span>
+                    </div>
+                    <div class="column-content" data-status="backlog"></div>
+                </div>
+                <div class="kanban-column" data-status="todo">
+                    <div class="column-header">
+                        <h3>📋 To Do</h3>
+                        <span class="column-count">0</span>
+                    </div>
+                    <div class="column-content" data-status="todo"></div>
+                </div>
+                <div class="kanban-column" data-status="doing">
+                    <div class="column-header">
+                        <h3>🔨 Doing</h3>
+                        <span class="column-count">0</span>
+                    </div>
+                    <div class="column-content" data-status="doing"></div>
+                </div>
+                <div class="kanban-column" data-status="review">
+                    <div class="column-header">
+                        <h3>👀 Review</h3>
+                        <span class="column-count">0</span>
+                    </div>
+                    <div class="column-content" data-status="review"></div>
+                </div>
+                <div class="kanban-column" data-status="done">
+                    <div class="column-header">
+                        <h3>✅ Done</h3>
+                        <span class="column-count">0</span>
+                    </div>
+                    <div class="column-content" data-status="done"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- List View -->
+        <div class="view-container list-view hidden" id="listView">
+            <div class="list-content"></div>
+        </div>
+
+        <!-- Calendar View -->
+        <div class="view-container calendar-view hidden" id="calendarView">
+            <div class="calendar-controls">
+                <button class="cal-btn" id="calPrev">◀</button>
+                <button class="cal-btn" id="calToday">Today</button>
+                <button class="cal-btn" id="calNext">▶</button>
+                <div class="cal-date" id="calDate">Loading...</div>
+                <div class="cal-view-toggle">
+                    <button class="cal-view-btn active" data-cal-view="month">Month</button>
+                    <button class="cal-view-btn" data-cal-view="week">Week</button>
+                    <button class="cal-view-btn" data-cal-view="day">Day</button>
+                </div>
+            </div>
+            <div class="calendar-content" id="calendarContent"></div>
+        </div>
+    </main>
+
+    <!-- Task Detail Sidebar -->
+    <aside class="task-sidebar hidden" id="taskSidebar">
+        <div class="sidebar-header">
+            <h2>Task Details</h2>
+            <button class="close-btn" id="closeSidebar">✕</button>
+        </div>
+        <div class="sidebar-content" id="sidebarContent">
+            <!-- Dynamic content -->
+        </div>
+    </aside>
+
+    <!-- New Task Modal -->
+    <div class="modal hidden" id="newTaskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>New Task</h2>
+                <button class="close-btn" id="closeNewTaskModal">✕</button>
+            </div>
+            <form id="newTaskForm" class="task-form">
+                <div class="form-group">
+                    <label>Title *</label>
+                    <input type="text" name="title" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Project</label>
+                        <select name="project"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Assignee</label>
+                        <select name="assignee"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select name="priority">
+                            <option value="p0">🔴 P0 - Critical</option>
+                            <option value="p1" selected>🟠 P1 - High</option>
+                            <option value="p2">🟡 P2 - Medium</option>
+                            <option value="p3">⚪ P3 - Low</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status">
+                            <option value="backlog">Backlog</option>
+                            <option value="todo" selected>To Do</option>
+                            <option value="doing">Doing</option>
+                            <option value="review">Review</option>
+                            <option value="done">Done</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Deadline</label>
+                        <input type="date" name="deadline">
+                    </div>
+                    <div class="form-group">
+                        <label>Effort</label>
+                        <select name="effort">
+                            <option value="small">Small (< 2h)</option>
+                            <option value="medium" selected>Medium (2-8h)</option>
+                            <option value="large">Large (> 8h)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Next Action</label>
+                    <input type="text" name="nextAction">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea name="notes" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="cancelNewTask">Cancel</button>
+                    <button type="submit" class="btn-primary">Create Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal hidden" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="close-btn" id="closeSettingsModal">✕</button>
+            </div>
+            <div class="settings-content">
+                <div class="settings-section">
+                    <h3>Assignees</h3>
+                    <div id="assigneesList"></div>
+                    <div class="add-item">
+                        <input type="text" id="newAssignee" placeholder="Add assignee...">
+                        <button id="addAssignee">Add</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Projects</h3>
+                    <div id="projectsList"></div>
+                    <div class="add-item">
+                        <input type="text" id="newProject" placeholder="Add project...">
+                        <button id="addProject">Add</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Default Views</h3>
+                    <div class="form-group">
+                        <label>Default Main View</label>
+                        <select id="defaultViewSelect">
+                            <option value="kanban">Kanban</option>
+                            <option value="list">List</option>
+                            <option value="calendar">Calendar</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Default Calendar View</label>
+                        <select id="defaultCalViewSelect">
+                            <option value="month">Month</option>
+                            <option value="week">Week</option>
+                            <option value="day">Day</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Data</h3>
+                    <button id="exportData" class="btn-secondary">Export JSON</button>
+                    <button id="importData" class="btn-secondary">Import JSON</button>
+                    <input type="file" id="importFile" accept=".json" style="display:none">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast hidden" id="toast">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Shortcuts Help -->
+    <div class="modal hidden" id="shortcutsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Keyboard Shortcuts</h2>
+                <button class="close-btn" id="closeShortcutsModal">✕</button>
+            </div>
+            <div class="shortcuts-list">
+                <div class="shortcut"><kbd>N</kbd><span>New Task</span></div>
+                <div class="shortcut"><kbd>/</kbd><span>Focus Search</span></div>
+                <div class="shortcut"><kbd>Esc</kbd><span>Close Modal/Sidebar</span></div>
+                <div class="shortcut"><kbd>?</kbd><span>Show Shortcuts</span></div>
+                <div class="shortcut"><kbd>F</kbd><span>Focus Mode (hide filters)</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
