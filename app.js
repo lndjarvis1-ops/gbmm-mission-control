@@ -1,4 +1,4 @@
-// Mission Control - Full Application Logic
+// Mission Control v1.1 - Enhanced with best practices from top GitHub apps
 class MissionControl {
   constructor() {
     this.data = null;
@@ -6,6 +6,9 @@ class MissionControl {
     this.currentCalendarView = 'month';
     this.currentDate = new Date();
     this.filteredTasks = [];
+    this.saveTimeout = null;
+    this.searchTimeout = null;
+    this.API_BASE = '/api';
     this.init();
   }
 
@@ -14,30 +17,73 @@ class MissionControl {
     this.setupEventListeners();
     this.applySettings();
     this.render();
+    this.startAutoSave();
   }
 
+  // Enhanced data loading with better error handling
   async loadData() {
     try {
-      const response = await fetch('data.json');
+      const response = await fetch(`${this.API_BASE}/data`);
+      if (!response.ok) throw new Error('Failed to load data');
       this.data = await response.json();
       this.filteredTasks = this.data.tasks;
       this.updateStats();
+      console.log('✓ Data loaded successfully');
     } catch (error) {
       console.error('Error loading data:', error);
-      this.showToast('Error loading data');
+      // Fallback to localStorage
+      const backup = localStorage.getItem('missionControlData');
+      if (backup) {
+        this.data = JSON.parse(backup);
+        this.filteredTasks = this.data.tasks;
+        this.showToast('⚠️ Using offline data');
+      } else {
+        this.showToast('❌ Failed to load data');
+      }
     }
   }
 
-  async saveData() {
-    try {
-      // In production, this would save to backend
-      localStorage.setItem('missionControlData', JSON.stringify(this.data));
-      this.data.meta.lastSync = new Date().toISOString();
-      this.showToast('✓ Saved');
-    } catch (error) {
-      console.error('Error saving:', error);
-      this.showToast('Error saving data');
+  // Debounced save with optimistic UI updates
+  async saveData(immediate = false) {
+    if (this.saveTimeout) clearTimeout(this.saveTimeout);
+    
+    // Always save to localStorage immediately
+    localStorage.setItem('missionControlData', JSON.stringify(this.data));
+    
+    const doSave = async () => {
+      try {
+        document.getElementById('toast').textContent = '💾 Saving...';
+        document.getElementById('toast').classList.remove('hidden');
+        
+        const response = await fetch(`${this.API_BASE}/data`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.data)
+        });
+        
+        if (!response.ok) throw new Error('Save failed');
+        
+        const result = await response.json();
+        this.data.meta.lastSync = result.lastSync;
+        this.showToast('✓ Saved');
+      } catch (error) {
+        console.error('Save error:', error);
+        this.showToast('⚠️ Saved locally');
+      }
+    };
+    
+    if (immediate) {
+      await doSave();
+    } else {
+      this.saveTimeout = setTimeout(doSave, 1000); // Debounce 1s
     }
+  }
+
+  // Auto-save every 30 seconds
+  startAutoSave() {
+    setInterval(() => {
+      if (this.data) this.saveData(true);
+    }, 30000);
   }
 
   setupEventListeners() {
@@ -64,8 +110,11 @@ class MissionControl {
     // Theme toggle
     document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
 
-    // Search
-    document.getElementById('searchInput').addEventListener('input', (e) => this.search(e.target.value));
+    // Debounced search
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      if (this.searchTimeout) clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(() => this.search(e.target.value), 300);
+    });
 
     // Filters
     document.getElementById('filterAssignee').addEventListener('change', () => this.applyFilters());
@@ -89,6 +138,43 @@ class MissionControl {
     document.getElementById('calPrev').addEventListener('click', () => this.navigateCalendar(-1));
     document.getElementById('calNext').addEventListener('click', () => this.navigateCalendar(1));
     document.getElementById('calToday').addEventListener('click', () => this.goToToday());
+
+    // Quick add (Cmd/Ctrl+K)
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        this.openQuickAdd();
+      }
+    });
+  }
+
+  // Quick Add modal (Linear-inspired)
+  openQuickAdd() {
+    const title = prompt('Quick add task:');
+    if (!title) return;
+    
+    const task = {
+      id: `task-${Date.now()}`,
+      title: title,
+      project: this.data.projects[0] || 'General',
+      status: 'todo',
+      priority: 'p1',
+      assignee: this.data.assignees[0] || 'Unassigned',
+      deadline: null,
+      effort: 'medium',
+      progress: 0,
+      nextAction: '',
+      tags: [],
+      notes: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    this.data.tasks.push(task);
+    this.saveData();
+    this.updateStats();
+    this.applyFilters();
+    this.showToast('✓ Task created');
   }
 
   switchView(view) {
@@ -119,7 +205,6 @@ class MissionControl {
       const column = document.querySelector(`.column-content[data-status="${status}"]`);
       const tasks = this.filteredTasks.filter(t => t.status === status);
       
-      // Update count
       const count = column.closest('.kanban-column').querySelector('.column-count');
       count.textContent = tasks.length;
       
@@ -129,16 +214,22 @@ class MissionControl {
           <div class="empty-state-text">No tasks</div>
         </div>`;
       
-      // Setup drag & drop
       this.setupDragAndDrop(column);
     });
     
-    // Make cards draggable
     document.querySelectorAll('.task-card').forEach(card => {
       card.setAttribute('draggable', 'true');
       card.addEventListener('dragstart', (e) => this.handleDragStart(e));
       card.addEventListener('dragend', (e) => this.handleDragEnd(e));
-      card.addEventListener('click', (e) => this.openTaskDetail(e.currentTarget.dataset.taskId));
+      card.addEventListener('click', (e) => {
+        if (!e.target.closest('.task-quick-actions')) {
+          this.openTaskDetail(e.currentTarget.dataset.taskId);
+        }
+      });
+      
+      // Quick actions on hover (like Linear)
+      card.addEventListener('mouseenter', (e) => this.showQuickActions(e.currentTarget));
+      card.addEventListener('mouseleave', (e) => this.hideQuickActions(e.currentTarget));
     });
   }
 
@@ -160,8 +251,44 @@ class MissionControl {
           <div class="task-assignee">${this.getInitials(task.assignee)}</div>
         </div>
         ${progress}
+        <div class="task-quick-actions hidden">
+          <button class="quick-action-btn" onclick="app.quickComplete('${task.id}')" title="Mark done">✓</button>
+          <button class="quick-action-btn" onclick="app.quickDelete('${task.id}')" title="Delete">🗑</button>
+        </div>
       </div>
     `;
+  }
+
+  showQuickActions(card) {
+    const actions = card.querySelector('.task-quick-actions');
+    if (actions) actions.classList.remove('hidden');
+  }
+
+  hideQuickActions(card) {
+    const actions = card.querySelector('.task-quick-actions');
+    if (actions) actions.classList.add('hidden');
+  }
+
+  quickComplete(taskId) {
+    const task = this.data.tasks.find(t => t.id === taskId);
+    if (task) {
+      task.status = 'done';
+      task.progress = 100;
+      task.updatedAt = new Date().toISOString();
+      this.saveData();
+      this.updateStats();
+      this.render();
+      this.showToast('✓ Task completed');
+    }
+  }
+
+  quickDelete(taskId) {
+    if (!confirm('Delete this task?')) return;
+    this.data.tasks = this.data.tasks.filter(t => t.id !== taskId);
+    this.saveData();
+    this.updateStats();
+    this.applyFilters();
+    this.showToast('✓ Task deleted');
   }
 
   formatDeadline(deadline) {
@@ -219,6 +346,7 @@ class MissionControl {
     const task = this.data.tasks.find(t => t.id === taskId);
     if (task) {
       task.status = newStatus;
+      if (newStatus === 'done') task.progress = 100;
       task.updatedAt = new Date().toISOString();
       this.saveData();
       this.updateStats();
@@ -273,7 +401,6 @@ class MissionControl {
       </table>
     `;
     
-    // Add click handlers for rows
     document.querySelectorAll('.list-table tbody tr[data-task-id]').forEach(row => {
       row.addEventListener('click', () => this.openTaskDetail(row.dataset.taskId));
     });
@@ -305,12 +432,10 @@ class MissionControl {
       html += `<div class="calendar-day-header">${day}</div>`;
     });
     
-    // Previous month days
     for (let i = firstDay - 1; i >= 0; i--) {
       html += `<div class="calendar-day other-month"><div class="calendar-day-number">${daysInPrevMonth - i}</div></div>`;
     }
     
-    // Current month days
     const today = new Date();
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
@@ -332,7 +457,6 @@ class MissionControl {
     html += '</div>';
     content.innerHTML = html;
     
-    // Add click handlers for calendar tasks
     document.querySelectorAll('.calendar-task-item').forEach(item => {
       item.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -381,7 +505,6 @@ class MissionControl {
       t.status === 'done' && t.updatedAt && t.updatedAt.startsWith(today)
     ).length;
     
-    // Calculate progress: done tasks count as 100%, in-progress by their progress value
     const totalTasks = this.data.tasks.length;
     if (totalTasks === 0) {
       document.getElementById('statProgress').textContent = '0%';
@@ -433,7 +556,6 @@ class MissionControl {
     const modal = document.getElementById('newTaskModal');
     const form = document.getElementById('newTaskForm');
     
-    // Populate dropdowns
     const projectSelect = form.querySelector('[name="project"]');
     projectSelect.innerHTML = this.data.projects.map(p => `<option value="${p}">${p}</option>`).join('');
     
@@ -471,7 +593,7 @@ class MissionControl {
     this.applyFilters();
     this.closeModal('newTaskModal');
     form.reset();
-    this.showToast('Task created');
+    this.showToast('✓ Task created');
   }
 
   openTaskDetail(taskId) {
@@ -544,13 +666,13 @@ class MissionControl {
       </div>
     `;
     
-    // Auto-save on change
     content.querySelectorAll('[data-field]').forEach(input => {
       input.addEventListener('change', (e) => {
         const field = e.target.dataset.field;
         task[field] = e.target.value;
         task.updatedAt = new Date().toISOString();
         this.saveData();
+        this.updateStats();
         this.render();
         if (field === 'progress') {
           document.getElementById('progressValue').textContent = `${e.target.value}%`;
@@ -572,7 +694,7 @@ class MissionControl {
     this.updateStats();
     this.closeSidebar();
     this.applyFilters();
-    this.showToast('Task deleted');
+    this.showToast('✓ Task deleted');
   }
 
   duplicateTask(taskId) {
@@ -584,29 +706,25 @@ class MissionControl {
     this.saveData();
     this.closeSidebar();
     this.applyFilters();
-    this.showToast('Task duplicated');
+    this.showToast('✓ Task duplicated');
   }
 
   openSettingsModal() {
     const modal = document.getElementById('settingsModal');
     
-    // Populate assignees
     const assigneesList = document.getElementById('assigneesList');
     assigneesList.innerHTML = this.data.assignees.map(a => 
       `<div>${a} <button onclick="app.removeAssignee('${a}')">✕</button></div>`
     ).join('');
     
-    // Populate projects
     const projectsList = document.getElementById('projectsList');
     projectsList.innerHTML = this.data.projects.map(p => 
       `<div>${p} <button onclick="app.removeProject('${p}')">✕</button></div>`
     ).join('');
     
-    // Set defaults
     document.getElementById('defaultViewSelect').value = this.data.settings.defaultView;
     document.getElementById('defaultCalViewSelect').value = this.data.settings.defaultCalendarView;
     
-    // Add new assignee
     document.getElementById('addAssignee').onclick = () => {
       const input = document.getElementById('newAssignee');
       if (input.value) {
@@ -617,7 +735,6 @@ class MissionControl {
       }
     };
     
-    // Add new project
     document.getElementById('addProject').onclick = () => {
       const input = document.getElementById('newProject');
       if (input.value) {
@@ -657,7 +774,6 @@ class MissionControl {
     this.currentView = this.data.settings.defaultView;
     this.currentCalendarView = this.data.settings.defaultCalendarView;
     
-    // Populate filter dropdowns
     const assigneeFilter = document.getElementById('filterAssignee');
     assigneeFilter.innerHTML = '<option value="all" selected>All</option>' + 
       this.data.assignees.map(a => `<option value="${a}">${a}</option>`).join('');

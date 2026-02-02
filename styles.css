@@ -993,3 +993,40 @@ kbd {
 .empty-state-text {
   font-size: 14px;
 }
+
+/* Quick Actions (Linear-inspired) */
+.task-quick-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.task-card:hover .task-quick-actions {
+  opacity: 1;
+}
+
+.quick-action-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: var(--transition);
+}
+
+.quick-action-btn:hover {
+  background: var(--status-todo);
+  color: white;
+  transform: scale(1.1);
+}
+
+/* Improved priority dots for list */
+.list-priority-dot.p0 { background: var(--p0); }
+.list-priority-dot.p1 { background: var(--p1); }
+.list-priority-dot.p2 { background: var(--p2); }
+.list-priority-dot.p3 { background: var(--p3); }

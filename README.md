@@ -4,31 +4,57 @@ Apple-inspired task management dashboard for Green Beans Media Management.
 
 ## Features
 
+### Core
 - **Kanban Board** - Drag & drop task management across 5 columns
-- **List View** - Tasks grouped by project with sortable columns
-- **Calendar View** - Month/Week/Day views with task scheduling
-- **Smart Filters** - Filter by assignee, project, priority
+- **Spreadsheet List View** - Sortable table with all task details
+- **Calendar View** - Month/Week/Day views with task names visible
+- **Smart Filters** - Single-select filters by assignee, project, priority
 - **Real-time Stats** - Active tasks, overdue items, progress tracking
 - **Dark/Light Theme** - Toggle between themes
-- **Keyboard Shortcuts** - Fast navigation (N for new task, / for search)
+
+### Productivity (Inspired by Linear & Top GitHub Apps)
+- **Quick Actions** - Hover over tasks for instant complete/delete (Linear-style)
+- **Quick Add** - Press `Cmd/Ctrl+K` to instantly create tasks
+- **Debounced Search** - Smooth, efficient search (300ms debounce)
+- **Auto-save** - Changes save automatically every 30 seconds + on edit
+- **Optimistic UI** - Instant visual updates before backend confirms
+- **Keyboard Shortcuts** - Fast navigation (N, /, Esc, ?)
+- **LocalStorage Backup** - Offline-first, syncs when online
+
+### Data & Backend
+- **File Persistence** - Data saves to `data.json` via Express backend
+- **API Endpoints** - `/api/data` (GET/POST), `/api/export`
+- **Export/Import** - Backup your data anytime
 
 ## Quick Start
 
 1. **Clone the repo:**
    ```bash
-   git clone <repo-url>
-   cd mission-control
+   git clone https://github.com/lndjarvis1-ops/gbmm-mission-control.git
+   cd gbmm-mission-control
    ```
 
-2. **Serve locally:**
+2. **Install dependencies:**
    ```bash
-   python3 -m http.server 8080
+   npm install
    ```
 
-3. **Open in browser:**
+3. **Start the server:**
+   ```bash
+   npm start
+   ```
+
+4. **Open in browser:**
    ```
    http://localhost:8080
    ```
+
+### Alternative (no backend):
+If you just want to try it without the backend:
+```bash
+python3 -m http.server 8080
+```
+(Note: Data won't persist to file without the Node.js backend)
 
 ## Tech Stack
 
