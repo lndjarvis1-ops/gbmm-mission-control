@@ -347,12 +347,13 @@ body {
 }
 
 .task-priority {
-  width: 8px;
-  height: 8px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   position: absolute;
   top: 12px;
   right: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .task-priority.p0 { background: var(--p0); }
@@ -434,49 +435,119 @@ body {
   transition: width 300ms ease;
 }
 
-/* List View */
+/* List View - Spreadsheet Style */
 .list-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.list-project {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  overflow: hidden;
 }
 
-.list-project-header {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
+.list-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.list-tasks {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.list-task {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
+.list-table thead {
   background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: var(--transition);
+  border-bottom: 2px solid var(--border);
 }
 
-.list-task:hover {
+.list-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.list-table th:hover {
   background: var(--bg-hover);
 }
+
+.list-table th::after {
+  content: '⇅';
+  position: absolute;
+  right: 8px;
+  opacity: 0.3;
+}
+
+.list-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.list-table tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
+.list-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+.list-priority-cell {
+  width: 40px;
+  text-align: center;
+}
+
+.list-priority-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.list-title-cell {
+  font-weight: 500;
+  min-width: 250px;
+}
+
+.list-project-cell {
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.list-assignee-cell {
+  width: 100px;
+}
+
+.list-deadline-cell {
+  width: 120px;
+  font-size: 13px;
+}
+
+.list-status-cell {
+  width: 100px;
+}
+
+.list-progress-cell {
+  width: 80px;
+}
+
+.list-status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.list-status-badge.backlog { background: rgba(99, 99, 102, 0.2); color: var(--status-backlog); }
+.list-status-badge.todo { background: rgba(0, 122, 255, 0.2); color: var(--status-todo); }
+.list-status-badge.doing { background: rgba(255, 149, 0, 0.2); color: var(--status-doing); }
+.list-status-badge.review { background: rgba(175, 82, 222, 0.2); color: var(--status-review); }
+.list-status-badge.done { background: rgba(52, 199, 89, 0.2); color: var(--status-done); }
 
 /* Calendar View */
 .calendar-controls {
@@ -587,14 +658,26 @@ body {
 .calendar-day-tasks {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  font-size: 11px;
 }
 
-.calendar-task-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  display: inline-block;
+.calendar-task-item {
+  background: var(--bg-tertiary);
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: var(--transition);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-task-item:hover {
+  background: var(--bg-hover);
+  transform: scale(1.02);
 }
 
 /* Sidebar */

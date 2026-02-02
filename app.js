@@ -228,37 +228,54 @@ class MissionControl {
 
   renderList() {
     const listContent = document.querySelector('.list-content');
-    const byProject = {};
     
-    this.filteredTasks.forEach(task => {
-      if (!byProject[task.project]) byProject[task.project] = [];
-      byProject[task.project].push(task);
-    });
+    listContent.innerHTML = `
+      <table class="list-table">
+        <thead>
+          <tr>
+            <th class="list-priority-cell">Priority</th>
+            <th class="list-title-cell">Task</th>
+            <th class="list-project-cell">Project</th>
+            <th class="list-assignee-cell">Assignee</th>
+            <th class="list-status-cell">Status</th>
+            <th class="list-deadline-cell">Deadline</th>
+            <th class="list-progress-cell">Progress</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${this.filteredTasks.length ? this.filteredTasks.map(task => `
+            <tr data-task-id="${task.id}">
+              <td class="list-priority-cell">
+                <div class="list-priority-dot ${task.priority}"></div>
+              </td>
+              <td class="list-title-cell">${task.title}</td>
+              <td class="list-project-cell">${task.project}</td>
+              <td class="list-assignee-cell">
+                <div class="task-assignee">${this.getInitials(task.assignee)}</div>
+              </td>
+              <td class="list-status-cell">
+                <span class="list-status-badge ${task.status}">${task.status}</span>
+              </td>
+              <td class="list-deadline-cell">
+                ${task.deadline ? this.formatDate(task.deadline) : '-'}
+              </td>
+              <td class="list-progress-cell">${task.progress}%</td>
+            </tr>
+          `).join('') : `
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                <div class="empty-state-icon">📭</div>
+                <div>No tasks found</div>
+              </td>
+            </tr>
+          `}
+        </tbody>
+      </table>
+    `;
     
-    listContent.innerHTML = Object.keys(byProject).map(project => `
-      <div class="list-project">
-        <div class="list-project-header">${project}</div>
-        <div class="list-tasks">
-          ${byProject[project].map(task => `
-            <div class="list-task" data-task-id="${task.id}">
-              <div class="task-priority ${task.priority}"></div>
-              <div style="flex: 1;">
-                <div class="task-title">${task.title}</div>
-                <div class="task-meta">
-                  ${task.deadline ? this.formatDeadline(task.deadline) : ''}
-                  <span>${task.status}</span>
-                </div>
-              </div>
-              <div class="task-assignee">${this.getInitials(task.assignee)}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `).join('');
-    
-    // Add click handlers
-    document.querySelectorAll('.list-task').forEach(task => {
-      task.addEventListener('click', () => this.openTaskDetail(task.dataset.taskId));
+    // Add click handlers for rows
+    document.querySelectorAll('.list-table tbody tr[data-task-id]').forEach(row => {
+      row.addEventListener('click', () => this.openTaskDetail(row.dataset.taskId));
     });
   }
 
@@ -303,13 +320,25 @@ class MissionControl {
       html += `<div class="calendar-day ${isToday ? 'today' : ''}">
         <div class="calendar-day-number">${day}</div>
         <div class="calendar-day-tasks">
-          ${tasksOnDate.map(t => `<span class="calendar-task-dot" style="background: var(--${t.priority})"></span>`).join('')}
+          ${tasksOnDate.map(t => `
+            <div class="calendar-task-item" style="border-left: 3px solid var(--${t.priority})" data-task-id="${t.id}">
+              ${t.title.length > 20 ? t.title.substring(0, 20) + '...' : t.title}
+            </div>
+          `).join('')}
         </div>
       </div>`;
     }
     
     html += '</div>';
     content.innerHTML = html;
+    
+    // Add click handlers for calendar tasks
+    document.querySelectorAll('.calendar-task-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openTaskDetail(item.dataset.taskId);
+      });
+    });
   }
 
   getTasksForDate(date) {
@@ -340,7 +369,11 @@ class MissionControl {
     const active = this.data.tasks.filter(t => t.status !== 'done').length;
     const overdue = this.data.tasks.filter(t => {
       if (!t.deadline || t.status === 'done') return false;
-      return new Date(t.deadline) < new Date();
+      const deadlineDate = new Date(t.deadline);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      deadlineDate.setHours(0, 0, 0, 0);
+      return deadlineDate < today;
     }).length;
     
     const today = new Date().toISOString().split('T')[0];
@@ -348,24 +381,33 @@ class MissionControl {
       t.status === 'done' && t.updatedAt && t.updatedAt.startsWith(today)
     ).length;
     
-    const totalProgress = this.data.tasks.reduce((sum, t) => sum + (t.progress || 0), 0);
-    const avgProgress = this.data.tasks.length ? Math.round(totalProgress / this.data.tasks.length) : 0;
+    // Calculate progress: done tasks count as 100%, in-progress by their progress value
+    const totalTasks = this.data.tasks.length;
+    if (totalTasks === 0) {
+      document.getElementById('statProgress').textContent = '0%';
+    } else {
+      const totalProgress = this.data.tasks.reduce((sum, t) => {
+        if (t.status === 'done') return sum + 100;
+        return sum + (parseInt(t.progress) || 0);
+      }, 0);
+      const avgProgress = Math.round(totalProgress / totalTasks);
+      document.getElementById('statProgress').textContent = `${avgProgress}%`;
+    }
     
     document.getElementById('statActive').textContent = active;
     document.getElementById('statOverdue').textContent = overdue;
     document.getElementById('statDoneToday').textContent = doneToday;
-    document.getElementById('statProgress').textContent = `${avgProgress}%`;
   }
 
   applyFilters() {
-    const assigneeFilter = Array.from(document.getElementById('filterAssignee').selectedOptions).map(o => o.value);
-    const projectFilter = Array.from(document.getElementById('filterProject').selectedOptions).map(o => o.value);
-    const priorityFilter = Array.from(document.getElementById('filterPriority').selectedOptions).map(o => o.value);
+    const assigneeFilter = document.getElementById('filterAssignee').value;
+    const projectFilter = document.getElementById('filterProject').value;
+    const priorityFilter = document.getElementById('filterPriority').value;
     
     this.filteredTasks = this.data.tasks.filter(task => {
-      if (!assigneeFilter.includes('all') && !assigneeFilter.includes(task.assignee)) return false;
-      if (!projectFilter.includes('all') && !projectFilter.includes(task.project)) return false;
-      if (!priorityFilter.includes('all') && !priorityFilter.includes(task.priority)) return false;
+      if (assigneeFilter !== 'all' && task.assignee !== assigneeFilter) return false;
+      if (projectFilter !== 'all' && task.project !== projectFilter) return false;
+      if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false;
       return true;
     });
     
